@@ -157,6 +157,6 @@ This project builds as an Angular SSR app with an Express API server locally and
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` set to `gemini-2.5-flash-lite` unless you intentionally choose another Gemini model
 
-The deployed analyzer uses `POST /api/briefiq/analyze`, and PRD generation uses `POST /api/briefiq/prd`. If Vercel returns `405 Method Not Allowed`, confirm the latest deployment includes the root `api/briefiq` directory.
+The deployed analyzer uses `POST /api/briefiq/analyze`, and PRD generation uses `POST /api/briefiq/prd`. You can check function routing with `GET /api/briefiq/health`. If Vercel returns `405 Method Not Allowed`, confirm the latest deployment includes the root `api/briefiq` directory.
 
 After deployment, update the live URL and Loom link at the top of this README.
