@@ -57,7 +57,8 @@ BriefIQ uses AI as a workflow layer, not as a single completion call.
 
 - Angular 21 for the web app and SSR server
 - Tailwind CSS 4 for styling
-- Express through Angular SSR for API routes
+- Express through Angular SSR for local API routes
+- Vercel Functions for deployed `/api/briefiq/*` endpoints
 - Gemini API for analysis and PRD generation
 - Default configured model: `gemini-2.5-flash-lite`
 - Vitest/Angular test target is configured, but no automated specs are currently included
@@ -151,9 +152,11 @@ npm run build
 
 ## Deployment Notes
 
-This project builds as an Angular SSR app with an Express API server. On Vercel, configure the Gemini key as an environment variable:
+This project builds as an Angular SSR app with an Express API server locally and Vercel Functions in `api/briefiq` for production API routing. On Vercel, configure the Gemini key as an environment variable:
 
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` set to `gemini-2.5-flash-lite` unless you intentionally choose another Gemini model
+
+The deployed analyzer uses `POST /api/briefiq/analyze`, and PRD generation uses `POST /api/briefiq/prd`. If Vercel returns `405 Method Not Allowed`, confirm the latest deployment includes the root `api/briefiq` directory.
 
 After deployment, update the live URL and Loom link at the top of this README.
