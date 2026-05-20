@@ -1,6 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { existsSync } from 'node:fs';
-import {
+import type {
   AnswerRecord,
   ApiErrorResponse,
   BriefAnalysis,
@@ -17,7 +17,7 @@ import {
   createTooShortAnalysis,
   isBriefTooShort,
   toBullets,
-} from './briefiq-utils';
+} from './briefiq-utils.js';
 
 const localEnvResult = loadEnv({ path: '.env.local', quiet: true });
 const rootEnvResult = loadEnv({ path: '.env', quiet: true });

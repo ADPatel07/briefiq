@@ -27,7 +27,7 @@ export default async function handler(
   }
 
   try {
-    const { analyzeBriefPayload } = await import('../../src/app/briefiq/briefiq-ai.server');
+    const { analyzeBriefPayload } = await import('../../src/app/briefiq/briefiq-ai.server.js');
     response.status(200).json(await analyzeBriefPayload(readJsonBody(request.body)));
   } catch (error) {
     sendApiError(response, error);

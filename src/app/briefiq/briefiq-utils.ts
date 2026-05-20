@@ -1,4 +1,4 @@
-import {
+import type {
   AnswerRecord,
   BriefAnalysis,
   ConfidenceScore,
@@ -115,10 +115,7 @@ export function calculateConfidence(
   const safeTotal = Math.max(totalQuestions, answers.length, 1);
   const skippedQuestions = answers.filter((answer) => answer.wasSkipped).length;
   const rawScore =
-    100 -
-    (skippedQuestions / safeTotal) * 35 -
-    assumptions.length * 7 -
-    openQuestions.length * 6;
+    100 - (skippedQuestions / safeTotal) * 35 - assumptions.length * 7 - openQuestions.length * 6;
   const score = Math.max(0, Math.min(100, Math.round(rawScore)));
   const answeredQuestions = Math.max(answers.length - skippedQuestions, 0);
 
@@ -321,7 +318,11 @@ function formatHtmlSection(label: string, bullets: string[]): string {
 }
 
 function formatHtmlList(bullets: string[]): string {
-  return ['<ul>', ...toBullets(bullets).map((bullet) => `<li>${escapeHtml(bullet)}</li>`), '</ul>'].join('');
+  return [
+    '<ul>',
+    ...toBullets(bullets).map((bullet) => `<li>${escapeHtml(bullet)}</li>`),
+    '</ul>',
+  ].join('');
 }
 
 function escapeHtml(value: string): string {

@@ -12,7 +12,7 @@ import {
   generatePrdPayload,
   getBriefiqEnvironmentStatus,
   toBriefiqApiErrorResponse,
-} from './app/briefiq/briefiq-ai.server';
+} from './app/briefiq/briefiq-ai.server.js';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
