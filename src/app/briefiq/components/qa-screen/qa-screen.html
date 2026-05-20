@@ -1,0 +1,327 @@
+<section class="grid w-full flex-1 max-w-6xl mx-auto gap-12 lg:grid-cols-[1fr_340px] animate-fade-in-up overflow-hidden">
+
+  <!-- Left: Chat Console -->
+  <div class="flex flex-col h-full overflow-hidden">
+
+    <!-- Header (Fixed) -->
+    <header class="shrink-0 mb-6 flex flex-col gap-3 pr-2">
+      <div class="flex items-end justify-between">
+        <div>
+          <p class="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">Scoping Progress</p>
+          <h2 class="text-xl font-medium text-white mt-1 tracking-tight">Question {{ question.currentNumber }} of {{ question.totalQuestions }}</h2>
+        </div>
+        <span class="text-xs font-mono text-zinc-500">{{ progressPercent() }}%</span>
+      </div>
+      <div class="w-full h-0.5 bg-zinc-900 rounded-full overflow-hidden">
+        <div class="h-full bg-white transition-all duration-500" [style.width.%]="progressPercent()"></div>
+      </div>
+    </header>
+
+    <!-- Chat Feed (Scrollable) -->
+    <div #scrollContainer class="flex-1 overflow-y-auto pr-6 scrollbar-thin flex flex-col gap-8 pb-4">
+      
+      <!-- Initial System Notice -->
+      <div class="flex items-start gap-4">
+        <div class="pt-0.5 text-zinc-500 shrink-0">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-[14px] font-medium text-white">
+            Brief Loaded — {{ summary.projectName }}
+          </p>
+          <p class="mt-1 text-[13px] text-zinc-400 leading-relaxed">
+            I've structured the raw specifications. Let's clarify the essential MVP boundaries.
+          </p>
+        </div>
+      </div>
+
+      <!-- Past Q&A -->
+      @for (answer of answers; track answer.questionId; let idx = $index) {
+        <div class="flex flex-col gap-3">
+          <!-- Question -->
+          <div class="flex items-start gap-4 text-[13px] text-zinc-500 font-medium">
+            <div class="pt-0.5 w-5 text-right font-mono text-zinc-600 shrink-0">{{ idx + 1 }}.</div>
+            <div class="flex-1">{{ answer.question }}</div>
+          </div>
+          
+          <!-- Answer (User) -->
+          <div class="flex justify-end w-full pl-9">
+            @if (!answer.wasSkipped) {
+              <div class="rounded-2xl rounded-tr-sm bg-zinc-900 px-5 py-3 text-[13px] leading-relaxed text-zinc-200">
+                {{ answer.answer }}
+              </div>
+            } @else {
+              <div class="rounded-2xl rounded-tr-sm bg-zinc-900/40 px-5 py-3 text-[13px] leading-relaxed text-zinc-500 italic">
+                Skipped (Default applied)
+              </div>
+            }
+          </div>
+
+          <!-- Assumption -->
+          @if (answer.assumption) {
+            <div class="flex justify-end w-full pl-9 mt-1">
+              <div class="rounded-lg bg-zinc-950 px-3 py-2 text-[11px] text-zinc-500 border border-zinc-900">
+                <span class="text-zinc-400 font-medium">Note:</span> {{ answer.assumption }}
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Current Active Question -->
+      <div class="flex items-start gap-4 animate-fade-in-up">
+        <div class="pt-1 w-5 text-right font-mono text-white shrink-0">{{ question.currentNumber }}.</div>
+        <div class="flex-1">
+          <h3 class="text-lg font-medium text-white leading-snug">
+            {{ question.question }}
+          </h3>
+          <p class="mt-2 flex items-center gap-1.5 text-[12px] text-zinc-500">
+            <svg class="h-3.5 w-3.5 text-zinc-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ question.reason }}
+          </p>
+        </div>
+      </div>
+
+      <!-- AI Status -->
+      @if (loadingMessage || errorMessage) {
+        <div class="pl-9 mt-2">
+          <app-ai-status [loadingMessage]="loadingMessage" [errorMessage]="errorMessage" (retry)="retry.emit()"/>
+        </div>
+      }
+    </div>
+
+    <!-- Input Area (Fixed Bottom) -->
+    <div class="shrink-0 pt-4 pl-9 flex flex-col gap-3 pr-2">
+      
+      <!-- Quick Options -->
+      @if (question.answerOptions.length > 0) {
+        <div class="flex flex-wrap gap-2 animate-fade-in-up">
+          @for (option of question.answerOptions; track option) {
+            <button
+              type="button"
+              class="rounded-full bg-zinc-900 hover:bg-zinc-800 px-4 py-2 text-[12px] font-medium text-zinc-300 transition-all focus:outline-none disabled:opacity-40"
+              [disabled]="isLoading"
+              (click)="submitOption(option)"
+            >
+              {{ option }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Text Input Box -->
+      <div class="relative flex flex-col rounded-2xl bg-zinc-900 p-2 focus-within:bg-zinc-800 transition-all shadow-md">
+        <!-- Voice Recording Overlay -->
+        @if (isRecording()) {
+          <div class="flex items-center gap-2.5 p-2 bg-red-950/20 border border-red-950/40 rounded-xl mb-1.5 animate-fade-in-up shrink-0">
+            <span class="flex h-2 w-2 relative shrink-0">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <span class="text-[11px] font-semibold text-red-400 font-mono select-none">{{ formattedTime }}</span>
+            <div class="flex items-end gap-0.5 h-3 pr-1 select-none">
+              <div class="w-0.5 bg-red-500 rounded-full h-1.5 animate-wave-bar"></div>
+              <div class="w-0.5 bg-red-500 rounded-full h-3 animate-wave-bar"></div>
+              <div class="w-0.5 bg-red-500 rounded-full h-1 animate-wave-bar"></div>
+              <div class="w-0.5 bg-red-500 rounded-full h-2.5 animate-wave-bar"></div>
+              <div class="w-0.5 bg-red-500 rounded-full h-1.5 animate-wave-bar"></div>
+            </div>
+            <span class="text-[10px] text-red-300 flex-1 truncate select-none">
+              @if (voiceError()) {
+                {{ voiceError() }}
+              } @else {
+                Listening... Speak now to answer this question.
+              }
+            </span>
+            <button
+              type="button"
+              (click)="stopVoiceRecording()"
+              class="text-[10px] font-bold text-red-400 hover:text-red-300 focus:outline-none transition cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-950/30"
+            >
+              Stop
+            </button>
+          </div>
+        }
+
+        <label for="answer" class="sr-only">Your answer</label>
+        <textarea
+          id="answer"
+          class="min-h-[56px] max-h-[160px] w-full resize-none bg-transparent px-3 py-2.5 text-[14px] text-white outline-none placeholder:text-zinc-600 disabled:opacity-50"
+          [formControl]="answerControl"
+          placeholder="Type or speak your answer..."
+          (keydown.enter)="$event.preventDefault(); !isLoading && answerControl.value.trim() ? submitAnswer() : null"
+        ></textarea>
+        
+        <div class="flex items-center justify-between mt-2 px-1">
+          <button
+            type="button"
+            class="text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition focus:outline-none disabled:opacity-40"
+            [disabled]="isLoading"
+            (click)="skipQuestion()"
+          >
+            Skip question
+          </button>
+
+          <div class="flex items-center gap-1.5">
+            <!-- Microphone Voice Recording button -->
+            <button
+              type="button"
+              (click)="toggleVoiceRecording()"
+              class="flex h-8 w-8 items-center justify-center rounded-full transition duration-200 focus:outline-none cursor-pointer"
+              [class.text-red-500]="isRecording()"
+              [class.bg-red-950/40]="isRecording()"
+              [class.animate-pulse-ring]="isRecording()"
+              [class.text-zinc-500]="!isRecording()"
+              [class.hover:text-zinc-300]="!isRecording()"
+              [class.hover:bg-zinc-800]="true"
+              [disabled]="isLoading"
+              title="Voice answer"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 003-3v-6a3 3 0 00-6 0v6a3 3 0 003 3z" />
+              </svg>
+            </button>
+
+            <!-- Submit Button -->
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-white hover:bg-zinc-200 text-black transition-transform hover:scale-[1.05] active:scale-[0.95] focus:outline-none disabled:opacity-30 disabled:hover:scale-100 cursor-pointer"
+              [disabled]="isLoading || !answerControl.value.trim()"
+              (click)="submitAnswer()"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Right Sidebar (Fixed Sidebar) -->
+  <aside class="flex flex-col h-full bg-[#0a0a0b] rounded-2xl p-6 relative">
+    
+    <!-- Header & Confidence -->
+    <div class="flex items-start justify-between pb-6 shrink-0 border-b border-zinc-900">
+      <div class="pr-4">
+        <h3 class="text-[14px] font-medium text-white leading-tight truncate max-w-[170px]" [title]="summary.projectName">
+          {{ summary.projectName }}
+        </h3>
+        <span class="inline-block mt-2 rounded bg-zinc-900 px-2 py-0.5 text-[9px] font-medium text-zinc-400">
+          {{ summary.projectType }}
+        </span>
+      </div>
+      
+      <div class="flex flex-col items-center justify-center shrink-0">
+        <div class="relative flex items-center justify-center h-11 w-11">
+          <svg class="h-11 w-11 transform -rotate-90">
+            <circle cx="22" cy="22" r="19" stroke="currentColor" stroke-width="2" class="text-zinc-900" fill="transparent" />
+            <circle
+              cx="22"
+              cy="22"
+              r="19"
+              stroke="white"
+              stroke-width="2"
+              stroke-dasharray="119.38"
+              [attr.stroke-dashoffset]="119.38 - (119.38 * confidenceScore) / 100"
+              stroke-linecap="round"
+              fill="transparent"
+              class="transition-all duration-700 ease-out"
+            />
+          </svg>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span class="text-[10px] font-bold text-white font-mono">{{ confidenceScore }}%</span>
+          </div>
+        </div>
+        <span class="text-[8px] text-zinc-500 mt-1 uppercase tracking-widest">Certainty</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex bg-zinc-950 border border-zinc-900 p-1 rounded-lg mt-6 shrink-0">
+      <button
+        type="button"
+        class="flex-1 rounded-md py-1.5 text-[10px] font-medium uppercase tracking-wider transition-all focus:outline-none"
+        [class.bg-[#1c1c1f]]="activeTab === 'facts'"
+        [class.text-white]="activeTab === 'facts'"
+        [class.text-zinc-500]="activeTab !== 'facts'"
+        [class.hover:text-zinc-300]="activeTab !== 'facts'"
+        (click)="activeTab = 'facts'"
+      >
+        Facts ({{ summary.knownFacts.length }})
+      </button>
+      <button
+        type="button"
+        class="flex-1 rounded-md py-1.5 text-[10px] font-medium uppercase tracking-wider transition-all focus:outline-none"
+        [class.bg-[#1c1c1f]]="activeTab === 'gaps'"
+        [class.text-white]="activeTab === 'gaps'"
+        [class.text-zinc-500]="activeTab !== 'gaps'"
+        [class.hover:text-zinc-300]="activeTab !== 'gaps'"
+        (click)="activeTab = 'gaps'"
+      >
+        Gaps ({{ summary.missingDetails.length }})
+      </button>
+      <button
+        type="button"
+        class="flex-1 rounded-md py-1.5 text-[10px] font-medium uppercase tracking-wider transition-all focus:outline-none"
+        [class.bg-[#1c1c1f]]="activeTab === 'assumptions'"
+        [class.text-white]="activeTab === 'assumptions'"
+        [class.text-zinc-500]="activeTab !== 'assumptions'"
+        [class.hover:text-zinc-300]="activeTab !== 'assumptions'"
+        (click)="activeTab = 'assumptions'"
+      >
+        Assumed ({{ summary.assumptions.length }})
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="mt-6 flex-1 overflow-y-auto pr-2 scrollbar-thin">
+      @if (activeTab === 'facts') {
+        <ul class="space-y-4 animate-fade-in-up">
+          @for (fact of summary.knownFacts; track fact) {
+            <li class="flex items-start gap-3 text-[12px] text-zinc-300 leading-relaxed">
+              <div class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-white"></div>
+              <span>{{ fact.replace(/^-\s+/, '') }}</span>
+            </li>
+          } @empty {
+            <li class="text-[12px] text-zinc-600 text-center py-6 select-none">No verified facts yet.</li>
+          }
+        </ul>
+      }
+
+      @if (activeTab === 'gaps') {
+        <ul class="space-y-4 animate-fade-in-up">
+          @for (gap of summary.missingDetails; track gap) {
+            <li class="flex items-start gap-3 text-[12px] text-zinc-400 leading-relaxed">
+              <div class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-zinc-600"></div>
+              <span>{{ gap.replace(/^-\s+/, '') }}</span>
+            </li>
+          } @empty {
+            <li class="text-[12px] text-zinc-600 text-center py-6 select-none">All gaps addressed.</li>
+          }
+        </ul>
+      }
+
+      @if (activeTab === 'assumptions') {
+        <ul class="space-y-4 animate-fade-in-up">
+          @for (ass of summary.assumptions; track ass) {
+            <li class="flex items-start gap-3 text-[12px] text-zinc-400 leading-relaxed">
+              <div class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-zinc-600"></div>
+              <span>{{ ass.replace(/^-\s+/, '') }}</span>
+            </li>
+          } @empty {
+            <li class="text-[12px] text-zinc-600 text-center py-6 select-none">No active defaults assumed.</li>
+          }
+        </ul>
+      }
+    </div>
+
+  </aside>
+
+</section>

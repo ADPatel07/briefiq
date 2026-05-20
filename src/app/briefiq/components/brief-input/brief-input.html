@@ -1,0 +1,271 @@
+<section class="mx-auto flex w-full max-w-2xl flex-col items-center justify-center min-h-[50vh] py-4 text-center animate-fade-in-up">
+
+  <!-- Heading -->
+  <h1 class="text-3xl font-bold text-white mb-2 tracking-tight select-none leading-tight">
+    What product are we scoping today?
+  </h1>
+  <p class="text-sm text-zinc-500 mb-8 select-none font-normal leading-relaxed">
+    Convert unstructured text, files, notes, and voice into a production-ready PRD.
+  </p>
+
+  <!-- Input Box -->
+  <div class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 focus-within:border-zinc-600 transition duration-200 text-left flex flex-col">
+    <!-- Borderless Textarea -->
+    <textarea
+      #briefTextarea
+      id="client-brief"
+      class="w-full bg-transparent border-0 outline-none text-zinc-200 placeholder-zinc-600 resize-none text-sm pr-2 focus:ring-0 focus:outline-none disabled:opacity-40 font-sans leading-relaxed min-h-[52px] max-h-[260px] overflow-y-auto"
+      [formControl]="briefControl"
+      (input)="logBriefInput(); resizeTextarea()"
+      placeholder="Paste raw client messages or describe your project idea in detail..."
+    ></textarea>
+
+    <!-- Voice Recording Panel Overlay -->
+    @if (isRecording()) {
+      <div class="flex items-center gap-3 p-2.5 bg-red-950/20 border border-red-950/50 rounded-lg mb-2.5 animate-fade-in-up shrink-0">
+        <!-- Pulsing Record Dot -->
+        <span class="flex h-2.5 w-2.5 relative shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+        </span>
+        
+        <!-- Recording Timer -->
+        <span class="text-xs font-semibold text-red-400 font-mono select-none">{{ formattedTime }}</span>
+        
+        <!-- Live Soundwave Animation -->
+        <div class="flex items-end gap-0.5 h-3.5 select-none pr-1">
+          <div class="w-0.5 bg-red-500 rounded-full h-2 animate-wave-bar"></div>
+          <div class="w-0.5 bg-red-500 rounded-full h-3.5 animate-wave-bar"></div>
+          <div class="w-0.5 bg-red-500 rounded-full h-1.5 animate-wave-bar"></div>
+          <div class="w-0.5 bg-red-500 rounded-full h-2.5 animate-wave-bar"></div>
+          <div class="w-0.5 bg-red-500 rounded-full h-1 animate-wave-bar"></div>
+        </div>
+
+        <!-- Transcription Status -->
+        <span class="text-xs text-red-300 flex-1 truncate select-none">
+          @if (voiceError()) {
+            {{ voiceError() }}
+          } @else {
+            Speaking now to transcribe voice into brief...
+          }
+        </span>
+
+        <!-- Stop Button -->
+        <button
+          type="button"
+          (click)="stopVoiceRecording()"
+          class="text-xs font-bold text-red-400 hover:text-red-300 focus:outline-none transition cursor-pointer px-2 py-0.5 rounded hover:bg-red-950/40"
+        >
+          Stop
+        </button>
+      </div>
+    }
+
+    <!-- Inline Note Addition Panel -->
+    @if (showNoteInput()) {
+      <div class="flex items-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-lg mb-2.5 animate-slide-in-down shrink-0">
+        <svg class="h-3.5 w-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        <input
+          id="note-item-input"
+          type="text"
+          [formControl]="noteControl"
+          class="flex-1 bg-transparent border-0 outline-none text-xs text-zinc-200 placeholder-zinc-600 focus:ring-0 focus:outline-none"
+          placeholder="Add product constraint or note (e.g. Must use Angular)..."
+          (keydown.enter)="addNote()"
+        >
+        <button
+          type="button"
+          (click)="addNote()"
+          class="text-[11px] px-2.5 py-1 rounded bg-white text-black font-bold hover:bg-zinc-200 active:scale-95 transition cursor-pointer"
+        >
+          Add
+        </button>
+        <button
+          type="button"
+          (click)="showNoteInput.set(false)"
+          class="text-[11px] text-zinc-500 hover:text-zinc-300 focus:outline-none cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+    }
+
+    <!-- Attachments & Notes Pill Badges List -->
+    @if (attachedFiles().length > 0 || notes().length > 0) {
+      <div class="mt-2.5 pt-2.5 border-t border-zinc-900 flex flex-col gap-2 animate-fade-in-up">
+        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider select-none px-0.5">
+          Attachments & Notes ({{ attachedFiles().length + notes().length }})
+        </span>
+        
+        <div class="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-1">
+          <!-- Files List -->
+          @for (file of attachedFiles(); track file.name; let idx = $index) {
+            <div class="flex items-center gap-1.5 rounded-md bg-zinc-900 border border-zinc-800/80 px-2 py-1 text-[11px] text-zinc-300 animate-fade-in-up group hover:border-zinc-700 transition duration-150">
+              <svg class="h-3 w-3 text-zinc-500 group-hover:text-zinc-400 transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span class="max-w-[120px] truncate select-none" [title]="file.name">{{ file.name }}</span>
+              <span class="text-[8px] text-zinc-600 font-mono shrink-0 select-none">{{ file.size }}</span>
+              <button
+                type="button"
+                (click)="removeFile(idx)"
+                class="text-zinc-600 hover:text-zinc-300 focus:outline-none transition cursor-pointer p-0.5 rounded-full hover:bg-zinc-800"
+                title="Remove file"
+              >
+                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
+
+          <!-- Notes List -->
+          @for (note of notes(); track note; let idx = $index) {
+            <div class="flex items-center gap-1.5 rounded-md bg-zinc-900 border border-zinc-800/80 px-2 py-1 text-[11px] text-zinc-300 animate-fade-in-up group hover:border-zinc-700 transition duration-150">
+              <svg class="h-3 w-3 text-zinc-500 group-hover:text-zinc-400 transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <span class="max-w-[160px] truncate select-none" [title]="note">{{ note }}</span>
+              <button
+                type="button"
+                (click)="removeNote(idx)"
+                class="text-zinc-600 hover:text-zinc-300 focus:outline-none transition cursor-pointer p-0.5 rounded-full hover:bg-zinc-800"
+                title="Remove note"
+              >
+                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Bottom row controls -->
+    <div class="flex items-center justify-between mt-2 pt-2 border-t border-zinc-900">
+      <!-- Left controls: Add files + Add notes -->
+      <div class="flex items-center gap-1.5">
+        <!-- Hidden file input selector -->
+        <input
+          #fileInput
+          type="file"
+          multiple
+          (change)="onFileSelected($event)"
+          class="hidden"
+          accept=".txt,.md,.json,.csv,.xml,.pdf,.docx"
+        >
+
+        <!-- Trigger File button -->
+        <button
+          type="button"
+          (click)="triggerFileUpload()"
+          class="flex h-7 w-7 items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900 transition-colors focus:outline-none cursor-pointer"
+          title="Add files"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+
+        <!-- Add Notes button -->
+        <button
+          type="button"
+          (click)="toggleNoteInput()"
+          class="flex h-7 w-7 items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900 transition-colors focus:outline-none cursor-pointer"
+          [class.text-white]="showNoteInput()"
+          [class.bg-zinc-900]="showNoteInput()"
+          title="Add notes"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Right controls: Voice input microphone + Scoping submit -->
+      <div class="flex items-center gap-1.5">
+        <!-- Microphone Voice Recording button -->
+        <button
+          type="button"
+          (click)="toggleVoiceRecording()"
+          class="flex h-7 w-7 items-center justify-center rounded-md transition duration-200 focus:outline-none cursor-pointer"
+          [class.text-red-500]="isRecording()"
+          [class.bg-red-950/40]="isRecording()"
+          [class.animate-pulse-ring]="isRecording()"
+          [class.text-zinc-600]="!isRecording()"
+          [class.hover:text-zinc-300]="!isRecording()"
+          [class.hover:bg-zinc-900]="true"
+          title="Voice input"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 003-3v-6a3 3 0 00-6 0v6a3 3 0 003 3z" />
+          </svg>
+        </button>
+
+        <!-- White circular submit button -->
+        <button
+          type="button"
+          class="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white hover:bg-zinc-200 text-black transition-all duration-200 hover:scale-[1.04] active:scale-[0.96] focus:outline-none disabled:cursor-not-allowed disabled:opacity-25 cursor-pointer"
+          [disabled]="!canSubmit() || isLoading"
+          (click)="submitBrief()"
+          [title]="isLoading ? 'Analyzing...' : 'Start scoping'"
+        >
+          @if (isLoading) {
+            <svg class="h-4 w-4 animate-spin text-black" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          } @else {
+            <svg class="h-4 w-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Status Panel -->
+  <div class="w-full mt-3 text-left">
+    <app-ai-status
+      [loadingMessage]="loadingMessage"
+      [errorMessage]="errorMessage"
+      (retry)="retry.emit()"
+    />
+  </div>
+
+  <!-- Starter Templates -->
+  <div class="mt-8 w-full text-left space-y-3 animate-fade-in-up">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-1">
+      Starter templates
+    </p>
+    <div class="grid gap-2.5 sm:grid-cols-3">
+      @for (tmpl of templates; track tmpl.title) {
+        <button
+          type="button"
+          class="flex flex-col text-left p-3.5 rounded-lg border border-zinc-900 bg-transparent hover:bg-zinc-950 hover:border-zinc-700 transition-all duration-200 group focus:outline-none focus:ring-1 focus:ring-zinc-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+          (click)="selectTemplate(tmpl.brief)"
+          [disabled]="isLoading"
+        >
+          <span class="text-base mb-1.5 grayscale group-hover:grayscale-0 transition-all duration-200">{{ tmpl.icon }}</span>
+          <span class="text-[12px] font-semibold text-zinc-300 group-hover:text-white transition duration-200">
+            {{ tmpl.title }}
+          </span>
+          <span class="mt-1 text-[11px] text-zinc-600 leading-normal line-clamp-2 group-hover:text-zinc-500 transition duration-200">
+            {{ tmpl.description }}
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Footnote -->
+  <p class="mt-7 text-center text-[11px] text-zinc-600 max-w-sm leading-relaxed select-none">
+    BriefIQ transforms raw project details and specifications into structured products.
+    Paste a brief, select a template, upload files, or record voice notes to begin.
+  </p>
+
+</section>

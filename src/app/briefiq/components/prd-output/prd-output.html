@@ -1,0 +1,238 @@
+<section class="flex h-full w-full flex-col animate-fade-in-up">
+  <header class="mb-6 flex shrink-0 flex-col gap-4 border-b border-zinc-900 pb-5 pr-2 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Verified MVP Specification</p>
+      <h1 class="mt-1 truncate text-2xl font-medium tracking-tight text-white">
+        {{ prd.projectName }}
+      </h1>
+      <p class="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-500">
+        Professional build handoff with scope, decisions, assumptions, and client sign-off items in one place.
+      </p>
+    </div>
+
+    <div class="flex shrink-0 flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex h-9 items-center justify-center rounded-lg bg-zinc-900 px-4 text-[12px] font-medium text-white transition hover:bg-zinc-800 focus:outline-none"
+        (click)="startOver.emit()"
+      >
+        <svg class="mr-2 h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-16v3m0 0a9 9 0 100 18 9 9 0 000-18z" />
+        </svg>
+        New Brief
+      </button>
+      <button
+        type="button"
+        class="inline-flex h-9 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 px-4 text-[12px] font-medium text-white transition hover:bg-zinc-900 active:scale-[0.98]"
+        (click)="$any(this).exportPdf()"
+      >
+        <svg class="mr-2 h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 8V4a1 1 0 011-1h6l4 4v1M7 8h10M6 14H5a2 2 0 01-2-2v-1a2 2 0 012-2h14a2 2 0 012 2v1a2 2 0 01-2 2h-1M7 14h10v7H7v-7z" />
+        </svg>
+        Export PDF
+      </button>
+      <button
+        type="button"
+        class="inline-flex h-9 items-center justify-center rounded-lg bg-white px-5 text-[12px] font-medium text-black transition hover:bg-zinc-200 active:scale-[0.98]"
+        (click)="$any(this).downloadReadme()"
+      >
+        <svg class="mr-2 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export README
+      </button>
+    </div>
+  </header>
+
+  <div class="grid flex-1 gap-8 overflow-hidden pb-4 lg:grid-cols-[210px_1fr]">
+    <aside class="hidden h-full flex-col overflow-y-auto pr-4 lg:flex">
+      <p class="mb-4 px-3 text-[9px] font-bold uppercase tracking-widest text-zinc-600">Directory</p>
+      <nav class="flex flex-col gap-0.5">
+        @for (sec of sectionsList; track sec.id) {
+          <button
+            type="button"
+            class="flex w-full items-center rounded-lg px-3 py-2 text-left text-[12px] font-medium transition-colors focus:outline-none"
+            [class.bg-zinc-900]="activeSectionId === sec.id"
+            [class.text-white]="activeSectionId === sec.id"
+            [class.text-zinc-500]="activeSectionId !== sec.id"
+            [class.hover:text-zinc-300]="activeSectionId !== sec.id"
+            (click)="scrollToSection(sec.id)"
+          >
+            <span class="truncate">{{ sec.label }}</span>
+          </button>
+        }
+      </nav>
+    </aside>
+
+    <div class="flex-1 overflow-y-auto pr-2 pb-20 scrollbar-thin sm:pr-6">
+      <div class="max-w-4xl space-y-8">
+        <section id="readiness" class="scroll-mt-6">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+              <span class="text-[9px] font-bold uppercase tracking-widest text-emerald-300/80">Confidence</span>
+              <div class="mt-2 flex items-end justify-between gap-3">
+                <strong class="font-mono text-3xl font-semibold text-white">{{ prd.sections.confidenceScore.score }}%</strong>
+                <span class="text-right text-[11px] font-medium text-emerald-200">{{ $any(this).readinessLabel }}</span>
+              </div>
+              <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-black/30">
+                <div
+                  class="h-full rounded-full bg-emerald-300 transition-all duration-500"
+                  [style.width.%]="prd.sections.confidenceScore.score"
+                ></div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Complexity</span>
+              <strong class="mt-2 block text-xl font-medium text-white">{{ prd.sections.effortAndComplexity.complexity }}</strong>
+              <p class="mt-1 text-[12px] text-zinc-500">MVP implementation class</p>
+            </div>
+
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Timeline</span>
+              <strong class="mt-2 block text-xl font-medium text-white">{{ prd.sections.effortAndComplexity.timeline }}</strong>
+              <p class="mt-1 text-[12px] text-zinc-500">Estimated delivery range</p>
+            </div>
+          </div>
+
+          <p class="mt-4 text-[13px] leading-relaxed text-zinc-400">
+            <span class="font-medium text-white">Why:</span> {{ prd.sections.confidenceScore.explanation }}
+          </p>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="client-clarifications" class="scroll-mt-6">
+          <div class="mb-5 flex flex-col gap-1">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-amber-300/80">Before implementation</p>
+            <h2 class="text-lg font-medium text-white">Clarify With Client</h2>
+          </div>
+          <ul class="space-y-3">
+            @for (item of prd.sections.clientClarifications; track item) {
+              <li class="flex items-start gap-3 rounded-lg border border-zinc-900 bg-zinc-950 px-4 py-3 text-[13px] leading-relaxed text-zinc-300">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+                </svg>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="summary" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Project Summary</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.projectSummary; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-white"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="users" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Target Users & Roles</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.targetUsersAndRoles; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-white"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="features" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Core Features</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.coreFeatures; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-white"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="mvp" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">MVP Scope Boundaries</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.mvpScope; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-white"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="out-of-scope" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Out of Scope (Post-MVP)</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.outOfScope; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-500">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-zinc-600"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="assumptions" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Key Assumptions</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.keyAssumptions; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-zinc-600"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="scoping-factors" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Key Scoping Factors</h2>
+          <ul class="space-y-3">
+            @for (item of prd.sections.effortAndComplexity.reasons; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-400">
+                <div class="mt-2 h-1 w-1 shrink-0 rounded-full bg-zinc-600"></div>
+                <span>{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <div class="h-px w-full bg-zinc-900"></div>
+
+        <section id="next-steps" class="scroll-mt-6">
+          <h2 class="mb-5 text-lg font-medium text-white">Next Steps</h2>
+          <ul class="space-y-4">
+            @for (item of prd.sections.suggestedNextSteps; track item) {
+              <li class="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-300">
+                <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white font-mono text-[10px] font-bold text-black">
+                  {{ $index + 1 }}
+                </div>
+                <span class="mt-0.5">{{ item }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,66 @@
+<main class="relative h-screen bg-black text-zinc-100 flex flex-col overflow-hidden selection:bg-zinc-800 selection:text-white">
+  <!-- Top monochrome accent line -->
+  <div class="h-px w-full bg-zinc-800 shrink-0 z-50"></div>
+
+  <!-- Clean Monochrome Header (Fixed Top) -->
+  <header class="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8 shrink-0 z-10 animate-fade-in-up">
+    <a class="flex items-center gap-2.5 w-fit group focus:outline-none" href="/" aria-label="BriefIQ home">
+      <!-- Square monochrome logo mark -->
+      <div class="flex h-7 w-7 items-center justify-center rounded-md bg-white transition duration-200 group-hover:bg-zinc-200">
+        <svg class="h-4 w-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 12h10l-1 8 11-10H13l1-8z" />
+        </svg>
+      </div>
+      <span class="text-base font-bold text-white select-none tracking-tight">
+        Brief<span class="text-zinc-400">IQ</span>
+      </span>
+    </a>
+  </header>
+
+  <!-- Main Content Container (Fills remaining height) -->
+  <div class="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex-1 overflow-hidden z-10 flex flex-col animate-fade-in-up">
+    <div class="w-full flex-1 overflow-hidden flex flex-col">
+      @if (stage() === 'brief') {
+        <div class="flex-1 overflow-y-auto scrollbar-thin pb-12">
+          <app-brief-input
+            [loadingMessage]="loadingMessage()"
+            [errorMessage]="errorMessage()"
+            (briefSubmitted)="analyzeBrief($event)"
+            (retry)="retryLastAction()"
+          />
+        </div>
+      }
+
+      @if (stage() === 'qa' && currentQuestion(); as question) {
+        <app-qa-screen
+          class="flex-1 w-full flex overflow-hidden pb-4"
+          [question]="question"
+          [summary]="summary()"
+          [answers]="answers()"
+          [loadingMessage]="loadingMessage()"
+          [errorMessage]="errorMessage()"
+          (answerSubmitted)="submitAnswer($event)"
+          (retry)="retryLastAction()"
+        />
+      }
+
+      @if (stage() === 'qa' && !currentQuestion()) {
+        <app-prd-loader
+          class="flex-1 w-full flex overflow-hidden pb-4"
+          [loadingMessage]="loadingMessage()"
+          [errorMessage]="errorMessage()"
+          (retry)="retryLastAction()"
+          (startOver)="startOver()"
+        />
+      }
+
+      @if (stage() === 'prd' && prd(); as finalPrd) {
+        <app-prd-output
+          class="flex-1 w-full flex overflow-hidden pb-4"
+          [prd]="finalPrd"
+          (startOver)="startOver()"
+        />
+      }
+    </div>
+  </div>
+</main>

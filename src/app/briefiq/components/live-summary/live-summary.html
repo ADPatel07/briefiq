@@ -1,0 +1,48 @@
+<aside class="rounded-lg border border-zinc-800 bg-zinc-950 p-5 shadow-sm text-zinc-300">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <p class="text-[9px] font-semibold uppercase tracking-widest text-zinc-500">
+        Live Summary
+      </p>
+      <h2 class="mt-2 text-sm font-bold text-white">{{ summary.projectName }}</h2>
+    </div>
+    <span class="rounded-md border border-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
+      {{ summary.projectType }}
+    </span>
+  </div>
+
+  <div class="mt-6 space-y-5">
+    <section>
+      <h3 class="text-[11px] font-semibold text-white">Known</h3>
+      <ul class="mt-2 space-y-2 text-[11px] leading-relaxed text-zinc-400">
+        @for (item of summary.knownFacts; track item) {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>{{ item }}</span></li>
+        } @empty {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>Waiting for brief details</span></li>
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="text-[11px] font-semibold text-white">Likely Features</h3>
+      <ul class="mt-2 space-y-2 text-[11px] leading-relaxed text-zinc-400">
+        @for (item of summary.likelyFeatures; track item) {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>{{ item }}</span></li>
+        } @empty {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>Taking shape as answers come in</span></li>
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="text-[11px] font-semibold text-white">Still Missing</h3>
+      <ul class="mt-2 space-y-2 text-[11px] leading-relaxed text-zinc-400">
+        @for (item of summary.missingDetails; track item) {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>{{ item }}</span></li>
+        } @empty {
+          <li class="flex gap-2"><span class="text-zinc-600">-</span> <span>No major gaps identified yet</span></li>
+        }
+      </ul>
+    </section>
+  </div>
+</aside>
