@@ -1,39 +1,54 @@
 import { BriefiqApiError, toBriefiqApiErrorResponse } from './briefiq-ai.server';
 
-const postHeaders = {
-  Allow: 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-};
+export interface BriefiqVercelRequest {
+  method?: string;
+  body?: unknown;
+}
+
+export interface BriefiqVercelResponse {
+  setHeader(name: string, value: string | string[]): void;
+  status(code: number): BriefiqVercelResponse;
+  json(payload: unknown): void;
+  end(): void;
+}
 
 export async function handleBriefiqPost<T>(
-  request: Request,
+  request: BriefiqVercelRequest,
+  response: BriefiqVercelResponse,
   action: (payload: unknown) => Promise<T>,
-): Promise<Response> {
+): Promise<void> {
+  response.setHeader('Allow', 'POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: postHeaders });
+    response.status(204).end();
+    return;
   }
 
   if (request.method !== 'POST') {
-    return Response.json({ message: 'Method not allowed.' }, { status: 405, headers: postHeaders });
+    response.status(405).json({ message: 'Method not allowed.' });
+    return;
   }
 
   try {
-    const payload = await readJsonBody(request);
-    const response = await action(payload);
-    return Response.json(response, { status: 200, headers: postHeaders });
+    const payload = readJsonBody(request.body);
+    const result = await action(payload);
+    response.status(200).json(result);
   } catch (error) {
     const apiError = toBriefiqApiErrorResponse(error);
-    return Response.json(apiError.payload, {
-      status: apiError.status,
-      headers: postHeaders,
-    });
+    response.status(apiError.status).json(apiError.payload);
   }
 }
 
-async function readJsonBody(request: Request): Promise<unknown> {
-  const body = await request.text();
+function readJsonBody(body: unknown): unknown {
+  if (body === undefined || body === null) {
+    return {};
+  }
+
+  if (typeof body !== 'string') {
+    return body;
+  }
 
   if (!body.trim()) {
     return {};

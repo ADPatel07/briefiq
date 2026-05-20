@@ -152,7 +152,7 @@ npm run build
 
 ## Deployment Notes
 
-This project builds as an Angular SSR app with an Express API server locally and Vercel Functions in `api/briefiq` for production API routing. On Vercel, configure the Gemini key as an environment variable:
+This project builds as an Angular SSR app with an Express API server locally and Vercel Functions in `api/briefiq` for production API routing. The Vercel functions are configured in `vercel.json` with a 30-second maximum duration for Gemini requests. On Vercel, configure the Gemini key as an environment variable:
 
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` set to `gemini-2.5-flash-lite` unless you intentionally choose another Gemini model
