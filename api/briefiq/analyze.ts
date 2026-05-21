@@ -1,7 +1,7 @@
 import {
   analyzeBriefPayload,
   toBriefiqApiErrorResponse,
-} from '../../src/app/briefiq/briefiq-ai.server';
+} from '../../src/app/briefiq/briefiq-ai.server.js';
 
 interface VercelRequest {
   method?: string;

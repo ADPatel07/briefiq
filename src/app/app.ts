@@ -42,20 +42,12 @@ export class App {
   protected readonly isBusy = computed(() => this.loadingMessage().length > 0);
 
   protected async analyzeBrief(rawBrief: string): Promise<void> {
-    console.info('[BriefIQ][App] analyzeBrief started', {
-      briefLength: rawBrief.trim().length,
-    });
     this.brief.set(rawBrief);
     this.retryAction = () => this.analyzeBrief(rawBrief);
     this.setLoading('Analyzing your brief...');
 
     try {
       const analysis = await firstValueFrom(this.api.analyzeBrief(rawBrief));
-      console.info('[BriefIQ][App] analyzeBrief succeeded', {
-        canStart: analysis.canStart,
-        projectType: analysis.projectType,
-        hasFirstQuestion: Boolean(analysis.firstQuestion),
-      });
 
       this.analysis.set(analysis);
       this.summary.set({
@@ -78,7 +70,6 @@ export class App {
       this.stage.set('qa');
       this.clearStatus();
     } catch (error) {
-      console.error('[BriefIQ][App] analyzeBrief failed', error);
       this.setError(this.readErrorMessage(error, 'Could not analyze the brief. Please try again.'));
     }
   }
@@ -87,18 +78,8 @@ export class App {
     const currentQuestion = this.currentQuestion();
 
     if (!currentQuestion || this.isBusy()) {
-      console.warn('[BriefIQ][App] submitAnswer blocked', {
-        hasCurrentQuestion: Boolean(currentQuestion),
-        busy: this.isBusy(),
-      });
       return;
     }
-
-    console.info('[BriefIQ][App] submitAnswer started', {
-      questionId: currentQuestion.id,
-      questionNumber: currentQuestion.currentNumber,
-      answerLength: rawAnswer.trim().length,
-    });
 
     const normalizedAnswer = normalizeAnswerRecord(currentQuestion, rawAnswer);
     const nextAnswers = [...this.answers(), normalizedAnswer];
@@ -117,12 +98,6 @@ export class App {
     this.summary.set(nextSummary);
     this.currentQuestion.set(nextQuestion);
 
-    console.info('[BriefIQ][App] answer saved locally', {
-      answerCount: nextAnswers.length,
-      hasNextQuestion: Boolean(nextQuestion),
-      skipped: normalizedAnswer.wasSkipped,
-    });
-
     if (!nextQuestion) {
       await this.generatePrd(nextAnswers, nextSummary, nextAssumptions, nextOpenQuestions);
     }
@@ -130,14 +105,9 @@ export class App {
 
   protected async retryLastAction(): Promise<void> {
     if (!this.retryAction || this.isBusy()) {
-      console.warn('[BriefIQ][App] retry blocked', {
-        hasRetryAction: Boolean(this.retryAction),
-        busy: this.isBusy(),
-      });
       return;
     }
 
-    console.info('[BriefIQ][App] retrying last action');
     await this.retryAction();
   }
 
@@ -169,11 +139,6 @@ export class App {
     }
 
     this.retryAction = () => this.generatePrd(answers, summary, assumptions, openQuestions);
-    console.info('[BriefIQ][App] generatePrd started', {
-      answerCount: answers.length,
-      assumptionCount: assumptions.length,
-      openQuestionCount: openQuestions.length,
-    });
     this.setLoading('Building your PRD...');
 
     try {
@@ -188,15 +153,10 @@ export class App {
         }),
       );
 
-      console.info('[BriefIQ][App] generatePrd succeeded', {
-        projectName: response.prd.projectName,
-        confidenceScore: response.prd.sections.confidenceScore.score,
-      });
       this.prd.set(response.prd);
       this.stage.set('prd');
       this.clearStatus();
     } catch (error) {
-      console.error('[BriefIQ][App] generatePrd failed', error);
       this.setError(this.readErrorMessage(error, 'Could not build the PRD. Please try again.'));
     }
   }
@@ -246,19 +206,16 @@ export class App {
   }
 
   private setLoading(message: string): void {
-    console.info('[BriefIQ][App] loading', { message });
     this.errorMessage.set('');
     this.loadingMessage.set(message);
   }
 
   private setError(message: string): void {
-    console.error('[BriefIQ][App] error shown', { message });
     this.loadingMessage.set('');
     this.errorMessage.set(message);
   }
 
   private clearStatus(): void {
-    console.info('[BriefIQ][App] status cleared');
     this.loadingMessage.set('');
     this.errorMessage.set('');
   }

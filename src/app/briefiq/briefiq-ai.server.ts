@@ -1,5 +1,4 @@
 import { config as loadEnv } from 'dotenv';
-import { existsSync } from 'node:fs';
 import type {
   AnswerRecord,
   ApiErrorResponse,
@@ -20,8 +19,8 @@ import {
   toBullets,
 } from './briefiq-utils.js';
 
-const localEnvResult = loadEnv({ path: '.env.local', quiet: true });
-const rootEnvResult = loadEnv({ path: '.env', quiet: true });
+loadEnv({ path: '.env.local', quiet: true });
+loadEnv({ path: '.env', quiet: true });
 const minFollowUpQuestions = 2;
 const maxFollowUpQuestions = 6;
 const defaultGeminiModel = 'gemini-2.5-flash-lite';
@@ -49,35 +48,14 @@ export class BriefiqApiError extends Error {
   }
 }
 
-export function getBriefiqEnvironmentStatus(): JsonObject {
-  return {
-    cwd: process.cwd(),
-    envLocalExists: existsSync('.env.local'),
-    envExists: existsSync('.env'),
-    envLocalLoaded: hasParsedEnv(localEnvResult.parsed),
-    envLoaded: hasParsedEnv(rootEnvResult.parsed),
-    hasGeminiApiKey: Boolean(process.env['GEMINI_API_KEY']),
-    geminiModel: process.env['GEMINI_MODEL'] || defaultGeminiModel,
-    geminiTimeoutMs: process.env['GEMINI_TIMEOUT_MS'] || '25000',
-  };
-}
-
 export async function analyzeBriefPayload(payload: unknown): Promise<BriefAnalysis> {
-  const startedAt = Date.now();
   const brief = readString(readRecord(payload)['brief']).trim();
-  console.info('[BriefIQ][Server] POST /api/briefiq/analyze received', {
-    briefLength: brief.length,
-  });
 
   if (!brief) {
-    console.warn('[BriefIQ][Server] analyze rejected: empty brief');
     throw new BriefiqApiError(400, 'Paste a client brief before starting.');
   }
 
   if (isBriefTooShort(brief)) {
-    console.info('[BriefIQ][Server] analyze handled locally: brief too short', {
-      elapsedMs: Date.now() - startedAt,
-    });
     return createTooShortAnalysis(brief);
   }
 
@@ -85,29 +63,16 @@ export async function analyzeBriefPayload(payload: unknown): Promise<BriefAnalys
     const generated = await callGeminiStructured<unknown>(buildAnalyzePrompt(brief), analyzeSchema);
     const analysis = sanitizeAnalysis(generated);
 
-    console.info('[BriefIQ][Server] analyze completed', {
-      elapsedMs: Date.now() - startedAt,
-      projectType: analysis.projectType,
-      hasFirstQuestion: Boolean(analysis.firstQuestion),
-    });
     return analysis;
   } catch (error) {
-    console.error('[BriefIQ][Server] analyze failed', describeError(error));
     throw toGeminiApiError(error, 'Could not analyze the brief with Gemini.');
   }
 }
 
 export async function generatePrdPayload(payload: unknown): Promise<PrdResponse> {
-  const startedAt = Date.now();
   const request = sanitizePrdRequest(payload);
-  console.info('[BriefIQ][Server] POST /api/briefiq/prd received', {
-    answerCount: request.answers.length,
-    assumptionCount: request.assumptions.length,
-    openQuestionCount: request.openQuestions.length,
-  });
 
   if (!request.brief || request.answers.length === 0) {
-    console.warn('[BriefIQ][Server] prd rejected: Q&A incomplete');
     throw new BriefiqApiError(400, 'Complete the Q&A flow before generating a PRD.');
   }
 
@@ -119,14 +84,8 @@ export async function generatePrdPayload(payload: unknown): Promise<PrdResponse>
     );
     const prd = sanitizePrd(generated, fallbackPrd);
 
-    console.info('[BriefIQ][Server] prd completed', {
-      elapsedMs: Date.now() - startedAt,
-      projectName: prd.projectName,
-      confidenceScore: prd.sections.confidenceScore.score,
-    });
     return { prd };
   } catch (error) {
-    console.error('[BriefIQ][Server] prd failed', describeError(error));
     throw toGeminiApiError(error, 'Could not build the PRD with Gemini.');
   }
 }
@@ -144,7 +103,6 @@ export function toBriefiqApiErrorResponse(error: unknown): {
     };
   }
 
-  console.error('[BriefIQ][Server] unexpected API error', describeError(error));
   return {
     status: 500,
     payload: { message: 'Unexpected BriefIQ server error.' },
@@ -157,26 +115,12 @@ async function callGeminiStructured<T>(prompt: string, schema: JsonObject): Prom
   const timeoutMs = readPositiveInteger(process.env['GEMINI_TIMEOUT_MS'], 25000);
 
   if (!apiKey) {
-    console.error('[BriefIQ][Gemini] missing GEMINI_API_KEY', {
-      envLocalExists: existsSync('.env.local'),
-      envExists: existsSync('.env'),
-      envLocalLoaded: hasParsedEnv(localEnvResult.parsed),
-    });
     throw new GeminiConfigError('Set GEMINI_API_KEY before using the AI workflow.');
   }
-
-  console.info('[BriefIQ][Gemini] request started', {
-    model,
-    timeoutMs,
-    promptLength: prompt.length,
-    schemaKeys: Object.keys(readRecord(schema['properties'])),
-    hasGeminiApiKey: true,
-  });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
-  const startedAt = Date.now();
 
   try {
     response = await fetch(
@@ -200,10 +144,6 @@ async function callGeminiStructured<T>(prompt: string, schema: JsonObject): Prom
     );
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error('[BriefIQ][Gemini] request timed out', {
-        elapsedMs: Date.now() - startedAt,
-        timeoutMs,
-      });
       throw new Error(`Gemini request timed out after ${Math.round(timeoutMs / 1000)} seconds.`);
     }
 
@@ -214,12 +154,6 @@ async function callGeminiStructured<T>(prompt: string, schema: JsonObject): Prom
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('[BriefIQ][Gemini] request failed', {
-      elapsedMs: Date.now() - startedAt,
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
-    });
     throw new Error(errorText || `Gemini returned HTTP ${response.status}.`);
   }
 
@@ -233,11 +167,6 @@ async function callGeminiStructured<T>(prompt: string, schema: JsonObject): Prom
   if (!text) {
     throw new Error('Gemini returned an empty response.');
   }
-
-  console.info('[BriefIQ][Gemini] request completed', {
-    elapsedMs: Date.now() - startedAt,
-    responseLength: text.length,
-  });
 
   return JSON.parse(text) as T;
 }
@@ -493,16 +422,6 @@ function toGeminiApiError(error: unknown, fallback: string): BriefiqApiError {
   }
 
   return new BriefiqApiError(502, fallback, error instanceof Error ? error.message : undefined);
-}
-
-function describeError(error: unknown): { name: string; message: string } {
-  return error instanceof Error
-    ? { name: error.name, message: error.message }
-    : { name: 'UnknownError', message: String(error) };
-}
-
-function hasParsedEnv(parsed: Record<string, string> | undefined): boolean {
-  return Boolean(parsed && Object.keys(parsed).length > 0);
 }
 
 function readRecord(value: unknown): JsonObject {

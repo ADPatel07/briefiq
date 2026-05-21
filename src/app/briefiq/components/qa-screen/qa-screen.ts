@@ -139,7 +139,6 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn('[BriefIQ][QA][Speech] Browser does not support Web Speech API');
       return;
     }
 
@@ -170,7 +169,6 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
       };
 
       this.speechRecognition.onerror = (event: any) => {
-        console.error('[BriefIQ][QA][Speech] Recognition error', event);
         if (event.error === 'not-allowed') {
           this.voiceError.set('Microphone permission denied.');
         } else {
@@ -180,13 +178,12 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
       };
 
       this.speechRecognition.onend = () => {
-        console.info('[BriefIQ][QA][Speech] Recognition ended');
         if (this.isRecording()) {
           this.stopVoiceRecording();
         }
       };
-    } catch (err) {
-      console.error('[BriefIQ][QA][Speech] Initialization failed', err);
+    } catch {
+      this.speechRecognition = null;
     }
   }
 
@@ -212,9 +209,7 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
         this.recordingDuration.update((d) => d + 1);
       }, 1000);
 
-      console.info('[BriefIQ][QA][Speech] Recording started');
-    } catch (err) {
-      console.error('[BriefIQ][QA][Speech] Start failed, using fallback simulation', err);
+    } catch {
       this.startSimulatedRecording();
     }
   }
@@ -228,11 +223,10 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
     if (this.speechRecognition && this.isRecording()) {
       try {
         this.speechRecognition.stop();
-      } catch (e) {}
+      } catch {}
     }
 
     this.isRecording.set(false);
-    console.info('[BriefIQ][QA][Speech] Recording stopped');
   }
 
   private startSimulatedRecording(): void {

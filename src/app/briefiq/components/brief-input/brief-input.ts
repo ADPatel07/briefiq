@@ -82,11 +82,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
   ];
 
   ngOnInit(): void {
-    console.info('[BriefIQ][BriefInput] initialized', {
-      hasInitialValue: this.briefControl.value.trim().length > 0,
-      loading: this.isLoading,
-    });
-
     if (typeof window !== 'undefined') {
       this.initSpeechRecognition();
     }
@@ -121,11 +116,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
   }
 
   ngOnChanges(): void {
-    console.info('[BriefIQ][BriefInput] inputs changed', {
-      loadingMessage: this.loadingMessage,
-      hasError: this.errorMessage.length > 0,
-    });
-
     if (this.isLoading) {
       this.briefControl.disable({ emitEvent: false });
       return;
@@ -148,18 +138,7 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
   protected selectTemplate(brief: string): void {
     if (this.isLoading) return;
     this.briefControl.setValue(brief);
-    console.info('[BriefIQ][BriefInput] selected template', { briefLength: brief.length });
     setTimeout(() => this.resizeTextarea(), 0);
-  }
-
-  protected logBriefInput(): void {
-    const length = this.briefControl.value.trim().length;
-
-    console.info('[BriefIQ][BriefInput] textarea input', {
-      length,
-      canSubmit: this.canSubmit(),
-      loading: this.isLoading,
-    });
   }
 
   // --- Voice Input (Speech Recognition) ---
@@ -167,7 +146,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.warn('[BriefIQ][Speech] Browser does not support Web Speech API');
       return;
     }
 
@@ -199,7 +177,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
       };
 
       this.speechRecognition.onerror = (event: any) => {
-        console.error('[BriefIQ][Speech] Recognition error', event);
         if (event.error === 'not-allowed') {
           this.voiceError.set('Microphone permission denied. Enable it in your browser settings.');
         } else {
@@ -209,13 +186,12 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
       };
 
       this.speechRecognition.onend = () => {
-        console.info('[BriefIQ][Speech] Recognition ended');
         if (this.isRecording()) {
           this.stopVoiceRecording();
         }
       };
-    } catch (err) {
-      console.error('[BriefIQ][Speech] Failed to initialize Web Speech API', err);
+    } catch {
+      this.speechRecognition = null;
     }
   }
 
@@ -242,9 +218,7 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
         this.recordingDuration.update(d => d + 1);
       }, 1000);
 
-      console.info('[BriefIQ][Speech] Recording started');
-    } catch (err) {
-      console.error('[BriefIQ][Speech] Start failed, using fallback simulation', err);
+    } catch {
       this.startSimulatedRecording();
     }
   }
@@ -258,11 +232,10 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
     if (this.speechRecognition && this.isRecording()) {
       try {
         this.speechRecognition.stop();
-      } catch (e) {}
+      } catch {}
     }
 
     this.isRecording.set(false);
-    console.info('[BriefIQ][Speech] Recording stopped');
   }
 
   private startSimulatedRecording(): void {
@@ -387,7 +360,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
     const brief = this.briefControl.value.trim();
 
     if (!this.canSubmit()) {
-      console.warn('[BriefIQ][BriefInput] submit blocked: nothing to submit or loading');
       return;
     }
 
@@ -410,13 +382,6 @@ export class BriefInputComponent implements OnChanges, OnInit, AfterViewInit, On
       });
       bundledBrief += '\n==============================================';
     }
-
-    console.info('[BriefIQ][BriefInput] submit brief packages', {
-      originalLength: brief.length,
-      bundledLength: bundledBrief.length,
-      filesCount: this.attachedFiles().length,
-      notesCount: this.notes().length,
-    });
 
     this.briefSubmitted.emit(bundledBrief);
   }

@@ -10,7 +10,6 @@ import { join } from 'node:path';
 import {
   analyzeBriefPayload,
   generatePrdPayload,
-  getBriefiqEnvironmentStatus,
   toBriefiqApiErrorResponse,
 } from './app/briefiq/briefiq-ai.server.js';
 
@@ -18,8 +17,6 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
-
-console.info('[BriefIQ][Server] environment loaded', getBriefiqEnvironmentStatus());
 
 app.use('/api/briefiq', express.json({ limit: '1mb' }));
 
@@ -60,8 +57,6 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
     if (error) {
       throw error;
     }
-
-    console.log(`Node Express server listening on http://localhost:${port}`);
   });
 }
 

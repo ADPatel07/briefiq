@@ -16,7 +16,7 @@
       id="client-brief"
       class="w-full bg-transparent border-0 outline-none text-zinc-200 placeholder-zinc-600 resize-none text-sm pr-2 focus:ring-0 focus:outline-none disabled:opacity-40 font-sans leading-relaxed min-h-[52px] max-h-[260px] overflow-y-auto"
       [formControl]="briefControl"
-      (input)="logBriefInput(); resizeTextarea()"
+      (input)="resizeTextarea()"
       placeholder="Paste raw client messages or describe your project idea in detail..."
     ></textarea>
 
