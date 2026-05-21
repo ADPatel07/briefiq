@@ -50,7 +50,7 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   protected get confidenceScore(): number {
-    const total = this.question.totalQuestions || 6;
+    const total = this.question.totalQuestions || Math.max(this.answers.length, 1);
     const assumptions = this.summary.assumptions || [];
     const openQ = this.summary.openQuestions || [];
     return calculateConfidence(total, this.answers, assumptions, openQ).score;
@@ -100,7 +100,7 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
     const el = this.scrollContainer.nativeElement;
     el.scrollTo({
       top: el.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   }
 
@@ -136,7 +136,8 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
   // --- Voice Input (Speech Recognition) ---
   private initSpeechRecognition(): void {
     if (typeof window === 'undefined') return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn('[BriefIQ][QA][Speech] Browser does not support Web Speech API');
       return;
@@ -208,7 +209,7 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
       this.recordingDuration.set(0);
 
       this.recordingInterval = setInterval(() => {
-        this.recordingDuration.update(d => d + 1);
+        this.recordingDuration.update((d) => d + 1);
       }, 1000);
 
       console.info('[BriefIQ][QA][Speech] Recording started');
@@ -240,17 +241,26 @@ export class QaScreenComponent implements OnChanges, AfterViewInit, OnDestroy {
     this.voiceError.set('Speech API blocked. Simulating speech transcription...');
 
     this.recordingInterval = setInterval(() => {
-      this.recordingDuration.update(d => d + 1);
+      this.recordingDuration.update((d) => d + 1);
 
       if (this.recordingDuration() === 3) {
         // Generate a smart adaptive answer based on the current question
-        let simulatedAnswer = 'I think we should prioritize regular customer accounts first, and providers can use a simpler interface.';
-        if (this.question.question.toLowerCase().includes('database') || this.question.question.toLowerCase().includes('data')) {
-          simulatedAnswer = 'We should use PostgreSQL for transactional safety and keep historical logs in regular tables.';
-        } else if (this.question.question.toLowerCase().includes('payment') || this.question.question.toLowerCase().includes('pay')) {
-          simulatedAnswer = 'Yes, let us integrate Stripe for processing all credit card payments securely.';
+        let simulatedAnswer =
+          'I think we should prioritize regular customer accounts first, and providers can use a simpler interface.';
+        if (
+          this.question.question.toLowerCase().includes('database') ||
+          this.question.question.toLowerCase().includes('data')
+        ) {
+          simulatedAnswer =
+            'We should use PostgreSQL for transactional safety and keep historical logs in regular tables.';
+        } else if (
+          this.question.question.toLowerCase().includes('payment') ||
+          this.question.question.toLowerCase().includes('pay')
+        ) {
+          simulatedAnswer =
+            'Yes, let us integrate Stripe for processing all credit card payments securely.';
         }
-        
+
         const currentValue = this.answerControl.value;
         const spacing = currentValue.endsWith(' ') || currentValue.length === 0 ? '' : ' ';
         this.answerControl.setValue(currentValue + spacing + simulatedAnswer);

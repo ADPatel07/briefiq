@@ -36,7 +36,7 @@ The goal is to help a builder quickly answer:
 1. The user enters a raw project brief, adds notes, uploads lightweight text/spec files, or uses voice input.
 2. BriefIQ packages the context into one structured brief.
 3. The server calls Gemini with a schema-constrained analysis prompt.
-4. The app returns a live project summary and six focused follow-up questions.
+4. The app returns a live project summary and an adaptive set of focused follow-up questions.
 5. The user answers, chooses suggested options, or skips unclear questions.
 6. BriefIQ tracks facts, gaps, assumptions, and confidence while the conversation progresses.
 7. After the final answer, the server generates a structured MVP PRD.
@@ -100,7 +100,7 @@ BriefIQ improves the baseline by:
 - Forcing a clarification loop before PRD generation
 - Showing what is known versus missing while scoping
 - Tracking assumptions explicitly when the user skips answers
-- Producing a confidence score based on skipped answers, assumptions, and open questions
+- Producing a confidence score based on unanswered questions, skipped answers, assumptions, open questions, and final client sign-off
 - Keeping the final PRD tied to the original brief and Q&A history
 
 The tradeoff is that BriefIQ takes a few extra minutes compared with a one-shot prompt, but the resulting spec is safer to estimate and hand off.

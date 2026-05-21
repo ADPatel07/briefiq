@@ -154,6 +154,14 @@ After the third version started working, I focused on small improvements through
 - Added confidence scoring.
 - Added PDF export and README-style Markdown export.
 
+Later review found a few scoring issues:
+
+- Confidence sometimes stayed around 61% because assumptions and open questions were not being updated correctly.
+- The app always asked 6 follow-up questions, even when fewer were enough.
+- Confidence could become too high, including 100% or 95%, while client clarifications still remained.
+
+I fixed this by making follow-up questions dynamic, making confidence depend on unanswered questions, skipped answers, assumptions, open questions, and "Clarify With Client" items, and adding regression tests for these cases.
+
 ## 12. Final Result
 
 The final version is a working AI-native prototype deployed on Vercel.

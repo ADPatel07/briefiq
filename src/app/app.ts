@@ -21,7 +21,7 @@ import { PrdLoaderComponent } from './briefiq/components/prd-loader/prd-loader';
   imports: [BriefInputComponent, QaScreenComponent, PrdOutputComponent, PrdLoaderComponent],
   providers: [BriefiqApiService],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   private readonly api = inject(BriefiqApiService);
@@ -58,8 +58,11 @@ export class App {
       });
 
       this.analysis.set(analysis);
-      this.summary.set(analysis.summary);
-      this.assumptions.set(analysis.summary.assumptions);
+      this.summary.set({
+        ...analysis.summary,
+        assumptions: [],
+      });
+      this.assumptions.set([]);
       this.openQuestions.set(analysis.summary.openQuestions);
 
       if (!analysis.canStart || !analysis.firstQuestion) {
@@ -102,11 +105,15 @@ export class App {
     const nextAssumptions = normalizedAnswer.assumption
       ? [...this.assumptions(), normalizedAnswer.assumption]
       : this.assumptions();
+    const nextOpenQuestions = normalizedAnswer.wasSkipped
+      ? this.openQuestions()
+      : this.openQuestions().slice(1);
     const nextQuestion = this.questions()[nextAnswers.length] ?? null;
-    const nextSummary = this.createLocalSummary(nextAnswers, nextAssumptions);
+    const nextSummary = this.createLocalSummary(nextAnswers, nextAssumptions, nextOpenQuestions);
 
     this.answers.set(nextAnswers);
     this.assumptions.set(nextAssumptions);
+    this.openQuestions.set(nextOpenQuestions);
     this.summary.set(nextSummary);
     this.currentQuestion.set(nextQuestion);
 
@@ -117,7 +124,7 @@ export class App {
     });
 
     if (!nextQuestion) {
-      await this.generatePrd(nextAnswers, nextSummary, nextAssumptions, this.openQuestions());
+      await this.generatePrd(nextAnswers, nextSummary, nextAssumptions, nextOpenQuestions);
     }
   }
 
@@ -197,23 +204,45 @@ export class App {
   private createLocalSummary(
     answers: AnswerRecord[],
     assumptions: string[],
+    openQuestions: string[],
   ): LiveSummary {
-    const currentSummary = this.analysis()?.summary ?? this.summary();
-    const answeredFacts = answers
-      .filter((answer) => !answer.wasSkipped)
-      .map((answer) => `${answer.question} ${answer.answer}`);
+    const currentSummary = this.summary();
+    const latestAnswer = answers.at(-1);
+    const latestFact =
+      latestAnswer && !latestAnswer.wasSkipped
+        ? `${latestAnswer.question} ${latestAnswer.answer}`
+        : '';
+    const filteredMissingDetails = currentSummary.missingDetails.filter(
+      (detail) =>
+        !answers.some((answer) =>
+          answer.question.toLowerCase().includes(detail.toLowerCase().slice(0, 16)),
+        ),
+    );
+    const missingDetails =
+      latestAnswer && !latestAnswer.wasSkipped
+        ? filteredMissingDetails.slice(1)
+        : filteredMissingDetails;
 
     return {
       ...currentSummary,
-      knownFacts: [...currentSummary.knownFacts, ...answeredFacts].slice(-8),
-      missingDetails: currentSummary.missingDetails.filter(
-        (detail) =>
-          !answers.some((answer) =>
-            answer.question.toLowerCase().includes(detail.toLowerCase().slice(0, 16)),
-          ),
-      ),
+      knownFacts: this.uniqueStrings([...currentSummary.knownFacts, latestFact]).slice(-8),
+      missingDetails,
       assumptions,
+      openQuestions,
     };
+  }
+
+  private uniqueStrings(items: string[]): string[] {
+    const seen = new Set<string>();
+
+    return items
+      .map((item) => item.trim())
+      .filter((item) => {
+        const key = item.toLowerCase();
+        const keep = item.length > 0 && !seen.has(key);
+        seen.add(key);
+        return keep;
+      });
   }
 
   private setLoading(message: string): void {

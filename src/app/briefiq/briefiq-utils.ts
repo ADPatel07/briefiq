@@ -33,6 +33,13 @@ const sectionLabels = {
   suggestedNextSteps: 'Suggested Next Steps',
 };
 
+const maxConfidenceScore = 95;
+const clientClarificationPenalty = 4;
+const requiredClientClarifications = [
+  'Confirm final MVP scope and acceptance criteria with the client before implementation.',
+  'Confirm timeline, budget, and approval owner before starting the build.',
+];
+
 export function isSkippedAnswer(answer: string): boolean {
   const normalized = answer.trim().toLowerCase();
   return unsurePatterns.some((pattern) => pattern.test(normalized));
@@ -111,18 +118,30 @@ export function calculateConfidence(
   answers: AnswerRecord[],
   assumptions: string[],
   openQuestions: string[],
+  clientClarifications: string[] = [],
 ): ConfidenceScore {
   const safeTotal = Math.max(totalQuestions, answers.length, 1);
   const skippedQuestions = answers.filter((answer) => answer.wasSkipped).length;
+  const unansweredQuestions = Math.max(safeTotal - answers.length, 0);
+  const clientClarificationCount = clientClarifications.length;
   const rawScore =
-    100 - (skippedQuestions / safeTotal) * 35 - assumptions.length * 7 - openQuestions.length * 6;
-  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+    100 -
+    (unansweredQuestions / safeTotal) * 25 -
+    (skippedQuestions / safeTotal) * 35 -
+    assumptions.length * 7 -
+    openQuestions.length * 6 -
+    clientClarificationCount * clientClarificationPenalty;
+  const score = Math.max(0, Math.min(maxConfidenceScore, Math.round(rawScore)));
   const answeredQuestions = Math.max(answers.length - skippedQuestions, 0);
 
   const explanation =
-    skippedQuestions === 0 && assumptions.length === 0 && openQuestions.length === 0
-      ? 'All follow-up questions were answered and no major gaps remain.'
-      : `${answeredQuestions} of ${safeTotal} questions were answered; ${assumptions.length} assumptions and ${openQuestions.length} client clarifications remain.`;
+    unansweredQuestions > 0
+      ? `${answeredQuestions} of ${safeTotal} questions were answered; ${unansweredQuestions} still need input before PRD generation.`
+      : clientClarificationCount > 0
+        ? `${answeredQuestions} of ${safeTotal} questions were answered; ${clientClarificationCount} before-implementation clarifications still need client sign-off.`
+        : skippedQuestions === 0 && assumptions.length === 0 && openQuestions.length === 0
+          ? 'All follow-up questions were answered; final client sign-off is still required before implementation.'
+          : `${answeredQuestions} of ${safeTotal} questions were answered; ${assumptions.length} assumptions and ${openQuestions.length} client clarifications remain.`;
 
   return { score, explanation };
 }
@@ -130,18 +149,20 @@ export function calculateConfidence(
 export function buildFallbackPrd(request: PrdRequest): ProjectPrd {
   const totalQuestions =
     request.analysis.firstQuestion?.totalQuestions || Math.max(request.answers.length, 1);
+  const clientClarifications = buildClientClarifications(request);
   const confidenceScore = calculateConfidence(
     totalQuestions,
     request.answers,
     request.assumptions,
     request.openQuestions,
+    clientClarifications,
   );
   const summary = request.summary;
 
   return {
     projectName: summary.projectName || request.analysis.projectName || 'Client Project',
     sections: {
-      clientClarifications: buildClientClarifications(request),
+      clientClarifications,
       projectSummary: toBullets([
         ...summary.knownFacts,
         `${summary.projectType || request.analysis.projectType} project based on the supplied client brief.`,
@@ -285,14 +306,49 @@ function buildClientClarifications(request: PrdRequest): string[] {
   const openQuestions = request.openQuestions.map((question) => `Confirm: ${question}`);
   const assumptions = request.assumptions.map((assumption) => `Validate assumption: ${assumption}`);
 
-  return toBullets(
-    [
-      ...openQuestions,
-      ...assumptions,
-      'Confirm final MVP scope, success criteria, timeline, budget, and approval owner.',
-    ],
-    ['Confirm final MVP scope, success criteria, timeline, budget, and approval owner.'],
+  return ensureClientClarifications([...openQuestions, ...assumptions]);
+}
+
+export function ensureClientClarifications(items: string[]): string[] {
+  return uniqueBullets(
+    toBullets([...items, ...requiredClientClarifications], requiredClientClarifications),
   ).slice(0, 6);
+}
+
+export function applyClientClarificationPenalty(
+  confidenceScore: ConfidenceScore,
+  clientClarifications: string[],
+): ConfidenceScore {
+  if (clientClarifications.length === 0) {
+    return confidenceScore;
+  }
+
+  const maxScoreFromClarifications = Math.max(
+    0,
+    100 - clientClarifications.length * clientClarificationPenalty,
+  );
+  const score = Math.min(confidenceScore.score, maxScoreFromClarifications);
+  const answeredPrefix = confidenceScore.explanation.match(
+    /\d+ of \d+ questions were answered/,
+  )?.[0];
+
+  return {
+    score,
+    explanation: answeredPrefix
+      ? `${answeredPrefix}; ${clientClarifications.length} before-implementation clarifications still need client sign-off.`
+      : `${clientClarifications.length} before-implementation clarifications still need client sign-off.`,
+  };
+}
+
+function uniqueBullets(items: string[]): string[] {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const key = item.trim().toLowerCase();
+    const keep = key.length > 0 && !seen.has(key);
+    seen.add(key);
+    return keep;
+  });
 }
 
 function formatBulletSection(label: string, bullets: string[]): string {

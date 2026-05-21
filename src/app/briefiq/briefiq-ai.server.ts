@@ -11,17 +11,19 @@ import type {
   ProjectPrd,
 } from './briefiq.models';
 import {
+  applyClientClarificationPenalty,
   buildFallbackPrd,
-  calculateConfidence,
   createEmptySummary,
   createTooShortAnalysis,
+  ensureClientClarifications,
   isBriefTooShort,
   toBullets,
 } from './briefiq-utils.js';
 
 const localEnvResult = loadEnv({ path: '.env.local', quiet: true });
 const rootEnvResult = loadEnv({ path: '.env', quiet: true });
-const totalQuestions = 6;
+const minFollowUpQuestions = 2;
+const maxFollowUpQuestions = 6;
 const defaultGeminiModel = 'gemini-2.5-flash-lite';
 
 type JsonObject = Record<string, unknown>;
@@ -245,11 +247,15 @@ function buildAnalyzePrompt(brief: string): string {
 Analyze this client brief and prepare the first adaptive follow-up question.
 Rules:
 - Do not generate the PRD yet.
-- Ask exactly ${totalQuestions} total follow-up questions across the Q&A flow.
+- Decide the number of follow-up questions from the brief's actual gaps.
+- Ask ${minFollowUpQuestions}-${maxFollowUpQuestions} total follow-up questions across the Q&A flow.
+- Use fewer questions for detailed briefs and more questions only when major build blockers remain unclear.
+- Prioritize the most important missing decisions for estimation: users and roles, MVP boundaries, core workflow, data, integrations, permissions, payments, timeline, budget, and success criteria.
+- Do not ask about details that are already clear in the brief.
 - The server has already rejected briefs that are too short, so canStart must be true.
 - Return short bullet-ready strings, not long paragraphs.
 - Extract project type, known facts, missing areas, likely features, assumptions, and open questions.
-- Return a questions array with exactly ${totalQuestions} adaptive follow-up questions.
+- Return a questions array containing only the needed adaptive follow-up questions.
 - Every question must include 2-3 concise answerOptions.
 - firstQuestion must be the same object as questions[0].
 
@@ -265,6 +271,7 @@ Rules:
 - Write a developer-ready implementation handoff, not a marketing summary.
 - Answer every known scope question directly in the relevant section.
 - Put unresolved decisions in Client Clarifications Before Implementation so the user knows exactly what to confirm with the client before building.
+- Client Clarifications Before Implementation must always include final client sign-off items, even when the Q&A is mostly complete.
 - Suggested Next Steps must not repeat the client clarification bullets; focus on actions after sign-off.
 - Include only these sections: Client Clarifications Before Implementation, Project Summary, Target Users and Roles, Core Features, MVP Scope, Out of Scope, Key Assumptions, Open Questions, Effort and Complexity, Confidence Score, Suggested Next Steps.
 - Effort complexity must be Low, Medium, or High with 2-3 bullet reasons.
@@ -275,15 +282,14 @@ Context JSON:
 ${JSON.stringify(request, null, 2)}`;
 }
 
-function sanitizeAnalysis(value: unknown): BriefAnalysis {
+export function sanitizeAnalysis(value: unknown): BriefAnalysis {
   const record = readRecord(value);
   const projectType = readString(record['projectType'], 'Unknown');
   const projectName = readString(record['projectName'], 'Client Project');
   const summary = sanitizeSummary(record['summary'], projectType, projectName);
   const canStart = true;
   const questions = sanitizeQuestions(record['questions'], record['firstQuestion']);
-  const firstQuestion =
-    questions[0] ?? sanitizeQuestion(record['firstQuestion'], 1, totalQuestions);
+  const firstQuestion = questions[0] ?? null;
 
   return {
     canStart,
@@ -308,31 +314,30 @@ function sanitizePrdRequest(value: unknown): PrdRequest {
     analysis,
     answers,
     summary: sanitizeSummary(record['summary'], analysis.projectType, analysis.projectName),
-    assumptions: toBullets(readStringArray(record['assumptions'])),
-    openQuestions: toBullets(readStringArray(record['openQuestions'])),
+    assumptions: toBullets(readStringArray(record['assumptions']), []),
+    openQuestions: toBullets(readStringArray(record['openQuestions']), []),
   };
 }
 
-function sanitizePrd(value: unknown, fallback: ProjectPrd): ProjectPrd {
+export function sanitizePrd(value: unknown, fallback: ProjectPrd): ProjectPrd {
   const record = readRecord(value);
   const sections = readRecord(record['sections']);
   const generatedEffort = readRecord(sections['effortAndComplexity']);
-  const confidenceScore = calculateConfidence(
-    fallback.sections.confidenceScore.score
-      ? fallback.sections.confidenceScore.score
-      : totalQuestions,
-    [],
-    [],
-    [],
+  const clientClarifications = ensureClientClarifications(
+    toBullets(
+      readStringArray(sections['clientClarifications']),
+      fallback.sections.clientClarifications,
+    ),
+  );
+  const confidenceScore = applyClientClarificationPenalty(
+    fallback.sections.confidenceScore,
+    clientClarifications,
   );
 
   return {
     projectName: readString(record['projectName'], fallback.projectName),
     sections: {
-      clientClarifications: toBullets(
-        readStringArray(sections['clientClarifications']),
-        fallback.sections.clientClarifications,
-      ),
+      clientClarifications,
       projectSummary: toBullets(
         readStringArray(sections['projectSummary']),
         fallback.sections.projectSummary,
@@ -369,7 +374,7 @@ function sanitizePrd(value: unknown, fallback: ProjectPrd): ProjectPrd {
           fallback.sections.effortAndComplexity.reasons,
         ).slice(0, 3),
       },
-      confidenceScore: fallback.sections.confidenceScore || confidenceScore,
+      confidenceScore,
       suggestedNextSteps: toBullets(
         readStringArray(sections['suggestedNextSteps']),
         fallback.sections.suggestedNextSteps,
@@ -419,7 +424,7 @@ function sanitizeQuestion(
     ),
     answerOptions: toBullets(
       readStringArray(record['answerOptions']),
-      defaultAnswerOptions(currentNumber),
+      defaultAnswerOptions(currentNumber, questionTotal),
     ).slice(0, 3),
     currentNumber,
     totalQuestions: questionTotal,
@@ -427,16 +432,41 @@ function sanitizeQuestion(
 }
 
 function sanitizeQuestions(value: unknown, firstQuestion: unknown): FollowUpQuestion[] {
-  const rawQuestions = Array.isArray(value) && value.length > 0 ? value : [firstQuestion];
+  const rawQuestions = collectQuestionInputs(value, firstQuestion).slice(0, maxFollowUpQuestions);
+  const questionTotal = Math.min(
+    maxFollowUpQuestions,
+    Math.max(rawQuestions.length, minFollowUpQuestions),
+  );
   const questions = rawQuestions
-    .slice(0, totalQuestions)
-    .map((item, index) => sanitizeQuestion(item, index + 1, totalQuestions));
+    .slice(0, questionTotal)
+    .map((item, index) => sanitizeQuestion(item, index + 1, questionTotal));
 
-  while (questions.length < totalQuestions) {
-    questions.push(sanitizeQuestion({}, questions.length + 1, totalQuestions));
+  while (questions.length < questionTotal) {
+    questions.push(sanitizeQuestion({}, questions.length + 1, questionTotal));
   }
 
   return questions;
+}
+
+function collectQuestionInputs(value: unknown, firstQuestion: unknown): unknown[] {
+  const candidates = Array.isArray(value) ? [...value] : [];
+
+  if (candidates.length === 0) {
+    candidates.push(firstQuestion);
+  }
+
+  const questions = candidates.filter(isQuestionInput);
+
+  return questions.length > 0 ? questions : [firstQuestion].filter(isQuestionInput);
+}
+
+function isQuestionInput(item: unknown): boolean {
+  return (
+    item !== null &&
+    typeof item === 'object' &&
+    !Array.isArray(item) &&
+    readString(readRecord(item)['question']).trim().length > 0
+  );
 }
 
 function readAnswers(value: unknown): AnswerRecord[] {
@@ -505,12 +535,15 @@ function readComplexity(
   return value === 'Low' || value === 'Medium' || value === 'High' ? value : fallback;
 }
 
-function defaultAnswerOptions(questionNumber: number): string[] {
+function defaultAnswerOptions(
+  questionNumber: number,
+  questionTotal = minFollowUpQuestions,
+): string[] {
   if (questionNumber === 1) {
     return ['Customers only', 'Customers and admins', 'Customers and providers'];
   }
 
-  if (questionNumber === totalQuestions) {
+  if (questionNumber === questionTotal) {
     return ['Ready to generate PRD', 'Mark as open question', 'Use your assumption'];
   }
 
