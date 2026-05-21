@@ -1,3 +1,8 @@
+import {
+  generatePrdPayload,
+  toBriefiqApiErrorResponse,
+} from '../../src/app/briefiq/briefiq-ai.server';
+
 interface VercelRequest {
   method?: string;
   body?: unknown;
@@ -27,7 +32,6 @@ export default async function handler(
   }
 
   try {
-    const { generatePrdPayload } = await import('../../src/app/briefiq/briefiq-ai.server.js');
     response.status(200).json(await generatePrdPayload(readJsonBody(request.body)));
   } catch (error) {
     sendApiError(response, error);
@@ -61,31 +65,6 @@ function readJsonBody(body: unknown): unknown {
 }
 
 function sendApiError(response: VercelResponse, error: unknown): void {
-  const errorInfo = describeError(error);
-  response
-    .status(errorInfo.status)
-    .json(
-      errorInfo.details
-        ? { message: errorInfo.message, details: errorInfo.details }
-        : { message: errorInfo.message },
-    );
-}
-
-function describeError(error: unknown): { status: number; message: string; details?: string } {
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>;
-    const status = typeof record['status'] === 'number' ? record['status'] : 500;
-    const message =
-      typeof record['message'] === 'string'
-        ? record['message']
-        : 'BriefIQ API failed before PRD generation completed.';
-    const details = typeof record['details'] === 'string' ? record['details'] : undefined;
-    return { status, message, details };
-  }
-
-  return {
-    status: 500,
-    message: 'BriefIQ API failed before PRD generation completed.',
-    details: String(error),
-  };
+  const apiError = toBriefiqApiErrorResponse(error);
+  response.status(apiError.status).json(apiError.payload);
 }
