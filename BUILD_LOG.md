@@ -1,169 +1,150 @@
 # BriefIQ Build Log
 
-Honest record of my 24-hour build journey for Quest 1.
+Honest record of the 24-hour Quest 1 build journey for BriefIQ.
 
-## 1. Planning The Idea
+## 1. Starting Point
 
-I spent around 4-5 hours discussing the idea with Claude and ChatGPT before building the final version.
+I spent around 4-5 hours before implementation discussing the idea with Claude and ChatGPT. The first concept was too broad: a generic AI PRD generator. After several rounds, I narrowed it to a more specific and useful problem:
 
-At first, the idea was too broad: an AI PRD generator. After several discussions, I narrowed it down to BriefIQ: an AI scoping assistant that asks clarification questions before generating a PRD.
+BriefIQ should help builders clarify vague client briefs before generating a PRD.
 
-After the idea became clearer, I created the Angular project manually and prepared `AGENTS.md` before starting implementation with Codex. I added project instructions there so Codex would follow the expected Angular structure, use Tailwind, keep the code simple, and review the existing codebase before making changes.
+That direction felt stronger because it targets the real failure point in FDE/APO work: not writing a document, but deciding what should be built, what is missing, and what should stay out of the MVP.
 
-Key questions I explored with AI:
+## 2. Key Product Decisions
 
-- What real problem should this solve?
-- Who is the target user?
-- What should the user flow be?
-- What tech stack should I use?
-- What should be in the MVP?
-- What should I avoid building in the first version?
-- How can the AI workflow be more than just one API call?
-
-## 2. Key Decisions
-
-- Build a scoping assistant, not just a PRD generator.
+- Build a scoping assistant, not a one-click PRD generator.
 - Ask follow-up questions before creating the final PRD.
-- Keep the flow short so it can be completed in a demo.
-- Track assumptions when the user skips an answer.
-- Show a confidence score so the PRD does not look more certain than it really is.
+- Keep the flow short enough for a demo and a real client intake.
+- Track skipped answers as assumptions.
+- Show confidence so the final PRD does not look more certain than the input.
+- Keep client sign-off items visible before implementation.
 - Export the final PRD as PDF or README-style Markdown.
 
-## 3. Prompts I Used
+## 3. Prompts and AI Direction
 
-I used many prompts with Claude and ChatGPT during planning and building. Some examples of the prompt direction:
+I used many small prompts with Claude, ChatGPT, Codex, and Antigravity instead of one large prompt. The main prompt themes were:
 
-- Help me define the PRD for an AI tool that turns vague client briefs into clear MVP scope.
-- Suggest the best user flow for a freelancer/FDE scoping assistant.
-- What should be the MVP and what should be out of scope?
-- Design an AI workflow that asks clarification questions before generating the PRD.
-- Improve this Angular UI but keep it clean and less noisy.
-- Fix this API/response handling issue and make the output reliable.
-- Make the input field, loading state, and final PRD page more readable.
+- Help me define a real problem for an AI-native FDE/APO quest.
+- Turn vague client briefs into a scoped MVP workflow.
+- Suggest what belongs in the MVP and what should be rejected.
+- Design an AI workflow that asks clarification questions before generating a PRD.
+- Make the AI output structured enough for an Angular UI.
+- Improve the UI while keeping it focused and less noisy.
+- Fix API response handling and make Gemini output safer to consume.
+- Improve confidence scoring so it does not overclaim readiness.
 
-Most prompts were small and iterative. I changed one part, tested it, then asked AI to improve the next part.
+I also used ChatGPT to improve my own prompts and instructions before sending them to coding tools.
 
-I also used ChatGPT to improve my own prompts and instructions before sending them to coding tools. For example, I used it to make my requests clearer for code generation, UI refinement, debugging, and project structure decisions.
+## 4. Tools Used
 
-## 4. Tools I Used
+- ChatGPT and Claude for idea shaping, user-flow planning, prompt refinement, and product critique.
+- Codex for implementing the Angular app, API logic, data models, sanitizers, tests, and documentation updates.
+- Antigravity for UI polish and layout refinement.
+- Gemini API for the live AI analysis and PRD generation workflow.
+- Angular, Tailwind CSS, TypeScript, Express, Vercel Functions, Vitest, and jsdom.
+- `AGENTS.md` to keep the coding agent aligned with Angular structure, Tailwind-first styling, simplicity, and review-before-edit behavior.
 
-I have not manually written the code line by line so far. My main work was deciding the product direction, writing/refining prompts, reviewing outputs, testing the app, identifying what was wrong, and asking the AI tools to improve it.
+I did not manually write most of the code line by line. My main work was product direction, prompts, review, testing, accepting/rejecting outputs, and deciding what the prototype should prove.
 
-Tools used:
+## 5. Iteration History
 
-- Claude and ChatGPT for idea discussion, PRD planning, and product decisions.
-- ChatGPT for improving prompts and code-writing instructions.
-- Manual project setup before using Codex.
-- `AGENTS.md` for giving Codex coding rules and implementation context.
-- Codex for building the main app logic and code structure.
-- Antigravity for improving the UI and visual polish.
-
-## 5. Version 1
-
-The first version was only a rough prototype.
+### Version 1
 
 What worked:
 
-- The basic idea was visible.
 - The user could enter a brief.
+- The basic concept was visible.
 
 What failed:
 
 - It felt like a normal AI text generator.
-- The scoping process was not clear.
-- The output was not strong enough for submission.
+- The scoping workflow was weak.
+- The output was not strong enough for a portfolio submission.
 
-I decided not to continue with this version because the base was weak.
+Decision: reject the generic PRD-generator direction.
 
-## 6. Version 2
-
-The second version improved the concept, but it still had many problems.
-
-Main issues:
-
-- API calls were not working reliably.
-- Responses were taking too much time.
-- The UI looked messy.
-- The layout was not user-friendly.
-- There was too much noise on the screen.
-- The final output was not easy to read.
-
-This version helped me realize that the app needed a simpler and clearer flow.
-
-## 7. Version 3
-
-The third version became the final base.
+### Version 2
 
 What improved:
 
-- The flow became clearer.
-- The app asked follow-up questions before PRD generation.
-- The layout was cleaner.
-- The final PRD page became more structured.
-- The final page was later tightened so confidence, timeline, complexity, and client sign-off items appear at the top.
+- The idea moved closer to client intake and product scoping.
+- The UI had more structure.
 
-But the API still had problems at first. I fixed the Gemini API call, response handling, timeout behavior, and server-side sanitization so the app could work more reliably.
+What failed:
 
-## 8. What AI Did Well
+- API calls were unreliable.
+- Responses took too long.
+- The UI had too much noise.
+- The final output was still hard to review.
 
-- Helped me shape the idea into a clearer product.
-- Helped prepare the PRD and user flow.
+Decision: simplify the flow and make the Q&A step the core product.
+
+### Version 3
+
+What became the final base:
+
+- Adaptive follow-up questions before PRD generation.
+- Cleaner brief input, Q&A screen, loading states, and final PRD view.
+- Live summary with facts, gaps, and assumptions.
+- Confidence scoring.
+- Client clarification section before implementation.
+- PDF export and README-style Markdown export.
+- Vercel deployment with API routes.
+
+Later review found issues where confidence could stay too flat or become too high while clarifications still remained. I fixed this by making follow-up questions dynamic, making confidence depend on unanswered questions, skipped answers, assumptions, open questions, and client sign-off items, and adding regression tests.
+
+## 6. What AI Did Well
+
+- Helped narrow the product from generic PRD generation into AI-native scoping.
 - Suggested useful MVP boundaries.
-- Helped write and refine prompts for the AI workflow.
-- Helped debug API and response-shape issues.
-- Helped improve UI step by step.
-- Codex helped build the main application logic faster than I could manually write it.
-- Antigravity helped improve the UI direction and visual details.
+- Helped design the analysis prompt, PRD prompt, and structured response shape.
+- Implemented Angular components, server helpers, Vercel routes, and export utilities quickly.
+- Helped debug Gemini response handling, timeout behavior, and sanitization.
+- Improved the UI through multiple small iterations.
+- Helped add regression tests for confidence scoring and PRD sanitization.
 
-## 9. Where AI Failed
+## 7. Where AI Failed
 
-- It suggested too many features too early.
-- Some UI suggestions looked good but made the product noisy.
-- Some generated code did not work correctly on the first try.
-- API response handling needed manual checking and fixes.
-- It sometimes made the product feel like a generic PRD generator instead of a scoping assistant.
-- Some prompts were not clear enough at first, so I had to improve the instructions before getting better output.
+- Suggested too many features too early.
+- Sometimes made the product feel like a generic generator instead of a scoping assistant.
+- Some UI suggestions looked polished but made the workflow noisier.
+- Some generated code did not work on the first try.
+- API response handling needed careful review because model output can be incomplete or malformed.
+- Confidence scoring needed manual product judgment so the app would not overstate readiness.
 
-## 10. What I Rejected
-
-I rejected or postponed:
+## 8. What I Rejected or Postponed
 
 - Login/authentication
 - Saved project history
-- DOCX export
 - Team collaboration
+- DOCX export
+- Real PDF/DOCX extraction
+- Jira, Linear, and Notion integrations
 - Too many dashboard panels
-- Extra integrations
 - A one-click PRD generator flow
 
-These ideas were useful, but not required for the 24-hour MVP.
+These could be useful later, but they were not needed to prove the Quest 1 prototype.
 
-## 11. What I Improved Through Review And Prompts
+## 9. Final Verification
 
-After the third version started working, I focused on small improvements through review, testing, and better prompts. I did not manually code these changes line by line; I guided Codex and Antigravity to make the improvements.
+Latest check completed on May 21, 2026.
 
-- Fixed API flow and response handling.
-- Improved the input field.
-- Added better loading states.
-- Made the Q&A screen cleaner.
-- Reduced visual noise.
-- Improved final PRD readability.
-- Added a clearer "Clarify With Client" section before implementation.
-- Removed repeated confidence, complexity, and timeline details from lower sections.
-- Added assumptions for skipped answers.
-- Added confidence scoring.
-- Added PDF export and README-style Markdown export.
+- Live app: https://briefiq-angular.vercel.app/ returned `200 OK`.
+- Loom demo: https://www.loom.com/share/30ac0e5e07314c2ebd4181a6febef861 returned `200 OK`.
+- Live health endpoint: `/api/briefiq/health` returned `200 OK`, `ok: true`, Gemini key present, and model `gemini-3.1-flash-lite`.
+- Live analyzer endpoint: `POST /api/briefiq/analyze` returned `canStart: true` and adaptive scoping output for the cleaning-booking test brief.
+- Tests: `npm.cmd test -- --watch=false` passed with 2 spec files and 10 tests.
+- Build: `npm.cmd run build` passed.
 
-Later review found a few scoring issues:
+## 10. Final Result
 
-- Confidence sometimes stayed around 61% because assumptions and open questions were not being updated correctly.
-- The app always asked 6 follow-up questions, even when fewer were enough.
-- Confidence could become too high, including 100% or 95%, while client clarifications still remained.
+The final version is a deployed AI-native prototype that demonstrates the full Quest 1 loop:
 
-I fixed this by making follow-up questions dynamic, making confidence depend on unanswered questions, skipped answers, assumptions, open questions, and "Clarify With Client" items, and adding regression tests for these cases.
+- Define a real problem.
+- Use AI to plan, build, and iterate.
+- Build an AI workflow that does more than one API call.
+- Deploy a working product.
+- Evaluate the result against a baseline.
+- Document the journey honestly.
 
-## 12. Final Result
-
-The final version is a working AI-native prototype deployed on Vercel.
-
-It is not production-complete, but it shows the full journey: defining the problem, using AI to plan and build, rejecting extra scope, fixing failures, improving the UI, and shipping a usable product.
+It is not production-complete, but it is submission-ready for the quest and aligned with the FDE/APO JD focus on ambiguity, prioritization, AI leverage, rapid shipping, and outcome ownership.
